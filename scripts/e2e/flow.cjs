@@ -1,0 +1,70 @@
+const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const BASE = process.argv[2];
+const vis = async (loc) => { try { await loc.waitFor({ state: 'visible', timeout: 6000 }); return true; } catch { return false; } };
+const assert = (c, m) => { if (!c) { console.log('FAIL', m); process.exitCode = 1; } else console.log('ok  ', m); };
+(async () => {
+  const b = await chromium.launch();
+  const ctx = await b.newContext({ viewport: { width: 1280, height: 900 } });
+  const p = await ctx.newPage();
+  const errs = []; p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
+  await p.goto(`${BASE}/#/`);
+  const d = new Date(); d.setDate(d.getDate() + 20);
+  const v = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  await p.fill('input[type=date]', v);
+  await p.fill('input[type=number]', '3');
+  assert(/20\s*days to go/.test(await p.locator('[aria-live=polite]').first().innerText()), 'countdown shows 20 days');
+  assert(await vis(p.locator('text=Today').first()), 'plan shows Today');
+  await p.click('text=Create today\'s checklist from the plan');
+  const boxes = p.locator('input[type=checkbox]');
+  assert((await boxes.count()) >= 2, 'checklist created with items');
+  await boxes.first().check();
+  await p.reload();
+  assert(await p.locator('input[type=checkbox]').first().isChecked(), 'checklist tick persists after reload');
+  assert((await p.inputValue('input[type=date]')) === v, 'exam date persists after reload');
+
+  await p.fill('#global-search', 'clairaut');
+  await p.keyboard.press('Enter');
+  await p.waitForURL(/first-order-pdes\?topic=u4-clairaut/);
+  assert(true, 'search Enter navigates to Clairaut topic');
+
+  const practice = p.locator('#practice article').first();
+  await practice.locator('button:has-text("Reveal full solution")').click();
+  await practice.locator('button:has-text("Yes, reveal")').click();
+  await practice.locator('button:has-text("Incorrect")').click();
+  await p.goto(`${BASE}/#/papers?tab=mistakes`);
+  assert(await vis(p.locator('text=What went wrong?').first()), 'mistake appears in Mistake review');
+
+  await p.goto(`${BASE}/#/papers?tab=mock`);
+  await p.click('text=Start mock exam');
+  assert(await vis(p.locator('[role=timer]')), 'mock timer visible');
+  await p.locator('input[name=unit-1]').first().check();
+  await p.locator('input[name=unit-4]').nth(1).check();
+  await p.reload();
+  assert(await p.locator('input[name=unit-1]').first().isChecked(), 'in-progress mock survives reload');
+  await p.locator('button:has-text("Submit")').first().click();
+  const marks = p.locator('input[type=number]');
+  const n = await marks.count();
+  for (let i = 0; i < n; i++) await marks.nth(i).fill('3.5');
+  await p.click('text=Save result');
+  assert(await vis(p.locator('text=Result saved')), 'mock result saved and shown');
+  assert(await vis(p.locator('text=Past mock attempts')) && (await p.locator('text=self-assessed').count()) > 0, 'mock listed in history');
+
+  await p.goto(`${BASE}/#/`);
+  assert(await vis(p.locator('text=Weak topics')), 'dashboard weak-topic panel present');
+  await vis(p.locator('section:has(h2:has-text("Weak topics")) li').first());
+  const weakItems = await p.locator('section:has(h2:has-text("Weak topics")) li').count();
+  assert(weakItems > 0, `weak topics computed from results (${weakItems})`);
+
+  const m = await b.newContext({ viewport: { width: 375, height: 800 } });
+  const mp = await m.newPage();
+  await mp.goto(`${BASE}/#/`);
+  await mp.click('button:has-text("Menu")');
+  await mp.click('#mobile-nav >> text=Unit III: Fourier Methods');
+  await mp.waitForURL(/fourier-methods/);
+  assert(await vis(mp.locator('h1:has-text("Unit III")')), 'mobile menu navigates');
+  await mp.selectOption('#topic-picker', 'u3-halfrange');
+  assert(await vis(mp.locator('h2:has-text("Half-range sine and cosine series")')), 'mobile topic picker switches topic');
+  await mp.keyboard.press('Tab');
+  assert(errs.length === 0, `no console/page errors (${errs.join(' | ')})`);
+  await b.close();
+})();

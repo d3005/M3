@@ -1,0 +1,91 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #0b1220;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer utilities {
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-400 focus-visible:ring-offset-2 focus-visible:ring-offset-ink-900;
+  }
+}
+
+/* Maths: keep formulas readable and scrollable on narrow screens instead of overflowing the page. */
+.katex {
+  font-size: 1.08em;
+}
+.math-display .katex-display {
+  margin: 0.25rem 0;
+}
+.math-display {
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+.math-inline .katex {
+  white-space: normal;
+}
+/* Long inline formulas scroll on their own instead of widening the page on phones. */
+.math-inline {
+  display: inline-block;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  vertical-align: middle;
+  padding: 0.15em 0;
+}
+/* Keep absolutely positioned (sr-only) descendants inside horizontal scroll containers. */
+.overflow-x-auto {
+  position: relative;
+}
+select {
+  max-width: 100%;
+}
+
+/* Printing: white paper, no navigation. When .print-only-area is on <body>, print only .print-area blocks. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .no-print,
+  aside,
+  header.sticky {
+    display: none !important;
+  }
+  body.print-only-area #root > * * {
+    visibility: hidden;
+  }
+  body.print-only-area .print-area,
+  body.print-only-area .print-area * {
+    visibility: visible;
+  }
+  body.print-only-area .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  .print-area,
+  .print-area * {
+    color: #000 !important;
+    background: transparent !important;
+    border-color: #999 !important;
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  .fixed {
+    position: static !important;
+  }
+}
