@@ -26,6 +26,8 @@ npm test             # 44 unit/integration tests (Vitest + Testing Library)
 
 The build uses relative paths and hash routing, so `dist/` also works from any static host or sub-folder.
 
+**Live site.** `.github/workflows/deploy.yml` tests and builds every push and pull request, and publishes `dist/` to GitHub Pages from the default branch (https://d3005.github.io/m3/). One-time setup: Settings > Pages > Source = **GitHub Actions**.
+
 Optional checks:
 
 ```bash
